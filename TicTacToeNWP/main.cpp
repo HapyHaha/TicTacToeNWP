@@ -9,6 +9,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         ticTacToeGame.Initialize(hwnd);
         return 0;
 
+    case WM_COMMAND:
+        if (LOWORD(wParam) >= 1000 && LOWORD(wParam) < 1009) {
+            int id = LOWORD(wParam) - 1000;
+            ticTacToeGame.OnButtonClick(id);
+        }
+        return 0;
+
     case WM_SIZE:
         ticTacToeGame.Resize(LOWORD(lParam), HIWORD(lParam));
         return 0;
