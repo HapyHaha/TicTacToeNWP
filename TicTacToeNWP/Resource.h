@@ -15,7 +15,12 @@
 #define IDC_MYICON				2
 #ifndef IDC_STATIC
 #define IDC_STATIC				-1
+#define IDS_XWINS 110
+#define IDS_OWINS 111
+#define IDS_GAMEOVER 112
+#define IDS_DRAW 113
 #endif
+
 // Next default values for new objects
 //
 #ifdef APSTUDIO_INVOKED
