@@ -1,28 +1,69 @@
 #include <windows.h>
 #include "Game.h"
 
-Game ticTacToeGame;
-
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    Game* game = reinterpret_cast<Game*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+
     switch (uMsg) {
     case WM_CREATE:
-        ticTacToeGame.Initialize(hwnd);
-        return 0;
+    {
+        CREATESTRUCT* pCreate = reinterpret_cast<CREATESTRUCT*>(lParam);
+        game = reinterpret_cast<Game*>(pCreate->lpCreateParams);
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(game));
+        game->Initialize(hwnd);
+    }
+    return 0;
 
-    case WM_COMMAND:
-        if (LOWORD(wParam) >= 1000 && LOWORD(wParam) < 1009) {
-            int id = LOWORD(wParam) - 1000;
-            ticTacToeGame.OnButtonClick(id);
+    case WM_LBUTTONDOWN: {
+        if (game) {
+            int x = LOWORD(lParam);
+            int y = HIWORD(lParam);
+            game->OnLButtonClick(x, y);
         }
         return 0;
+    }
+
+    case WM_PAINT: {
+        if (game) {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+            game->OnPaint(hdc, ps.rcPaint);
+            EndPaint(hwnd, &ps);
+        }
+        return 0;
+    }
 
     case WM_SIZE:
-        ticTacToeGame.Resize(LOWORD(lParam), HIWORD(lParam));
+        if (game) {
+            game->Resize(LOWORD(lParam), HIWORD(lParam));
+        }
         return 0;
 
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
+
+    case WM_SETCURSOR: {
+        if (LOWORD(lParam) == HTCLIENT) {
+            SetCursor(LoadCursor(nullptr, IDC_ARROW));
+            return TRUE;
+        }
+        break;
+    }
+
+    case WM_MOUSEMOVE: {
+        POINT pt;
+        GetCursorPos(&pt);
+        ScreenToClient(hwnd, &pt);
+
+        RECT rect;
+        GetClientRect(hwnd, &rect);
+        if (pt.x < rect.left || pt.x > rect.right || pt.y < rect.top || pt.y > rect.bottom) {
+            SetCursor(LoadCursor(nullptr, IDC_ARROW));
+        }
+        break;
+    }
+
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
@@ -37,26 +78,28 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     RegisterClass(&wc);
 
+    Game ticTacToeGame;
+
     HWND hwnd = CreateWindowEx(
         0,
         CLASS_NAME,
         L"Tic Tac Toe",
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT, 300, 300,
-        NULL,
-        NULL,
+        nullptr,
+        nullptr,
         hInstance,
-        NULL
+        &ticTacToeGame
     );
 
-    if (hwnd == NULL) {
+    if (hwnd == nullptr) {
         return 0;
     }
 
     ShowWindow(hwnd, nCmdShow);
 
     MSG msg = { };
-    while (GetMessage(&msg, NULL, 0, 0)) {
+    while (GetMessage(&msg, nullptr, 0, 0)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
