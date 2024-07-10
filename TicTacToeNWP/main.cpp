@@ -7,21 +7,39 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
     switch (uMsg) {
     case WM_CREATE:
-        game.Initialize(hwnd);
+        game.Initialize();
         return 0;
 
     case WM_LBUTTONDOWN: {
         int x = LOWORD(lParam);
         int y = HIWORD(lParam);
-        game.OnLButtonClick(hwnd, x, y);
+        if (game.OnLButtonClick(x, y)) {
+            InvalidateRect(hwnd, nullptr, TRUE);
+            UpdateWindow(hwnd);
+
+            std::wstring message;
+            if (game.CheckWinner(message)) {
+                MessageBox(hwnd, message.c_str(), L"Game Over", MB_OK);
+                InvalidateRect(hwnd, nullptr, TRUE);
+                UpdateWindow(hwnd);
+            }
+        }
         return 0;
     }
 
     case WM_PAINT: {
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hwnd, &ps);
-        game.OnPaint(hdc, ps.rcPaint);
+        RECT rect;
+        GetClientRect(hwnd, &rect);
+        game.OnPaint(hdc, rect);
         EndPaint(hwnd, &ps);
+        return 0;
+    }
+
+    case WM_SIZE: {
+        InvalidateRect(hwnd, nullptr, TRUE);
+        UpdateWindow(hwnd);
         return 0;
     }
 
@@ -39,8 +57,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wc.hCursor = LoadCursor(nullptr, IDC_ARROW);  
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); 
+    wc.hCursor = LoadCursor(nullptr, IDC_ARROW); 
 
     RegisterClass(&wc);
 

@@ -3,18 +3,20 @@
 #include <array>
 #include <string>
 
+enum CellState { EMPTY, X, O };
+
 class Game {
 public:
-    void Initialize(HWND hwnd);
-    void OnLButtonClick(HWND hwnd, int x, int y);
+    Game();
+    void Initialize();
+    bool OnLButtonClick(int x, int y);
     void OnPaint(HDC hdc, RECT& rect);
+    bool CheckWinner(std::wstring& message);
+    void ResetGame();
 
 private:
-    std::array<std::array<int, 3>, 3> board;
+    std::array<std::array<CellState, 3>, 3> board;
     bool isXTurn;
-    int cellWidth, cellHeight;
 
-    void ResetGame(HWND hwnd);
-    void CheckWinner(HWND hwnd);
-    void DrawSymbol(HDC hdc, RECT& rect, wchar_t symbol);
+    void DrawSymbol(HDC hdc, RECT& rect, CellState state);
 };
