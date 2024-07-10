@@ -5,18 +5,16 @@
 
 class Game {
 public:
-    Game();
     void Initialize(HWND hwnd);
-    void OnLButtonClick(int x, int y);
+    void OnLButtonClick(HWND hwnd, int x, int y);
     void OnPaint(HDC hdc, RECT& rect);
-    void Resize(int width, int height);
 
 private:
-    std::array<std::array<char, 3>, 3> board;
+    std::array<std::array<int, 3>, 3> board;
     bool isXTurn;
-    void ResetGame();
-    void CheckWinner();
-    bool CheckLine(char a, char b, char c);
-    std::wstring LoadStringResource(HINSTANCE hInstance, int id);
-    HWND hwnd;
+    int cellWidth, cellHeight;
+
+    void ResetGame(HWND hwnd);
+    void CheckWinner(HWND hwnd);
+    void DrawSymbol(HDC hdc, RECT& rect, wchar_t symbol);
 };

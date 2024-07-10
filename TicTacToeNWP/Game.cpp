@@ -1,107 +1,125 @@
 #include "Game.h"
 #include "Resource.h"
-#include <string>
-#include <array>
 
-Game::Game() : isXTurn(true), hwnd(nullptr) {
-    ResetGame();
-}
 
-std::wstring Game::LoadStringResource(HINSTANCE hInstance, int id) {
+std::wstring LoadStringResource(HINSTANCE hInstance, int id) {
     wchar_t buffer[256];
     int length = LoadString(hInstance, id, buffer, sizeof(buffer) / sizeof(buffer[0]));
     return std::wstring(buffer, length);
 }
 
 void Game::Initialize(HWND hwnd) {
-    this->hwnd = hwnd;
-    ResetGame();
+    ResetGame(hwnd);
+
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    cellWidth = clientRect.right / 3;
+    cellHeight = clientRect.bottom / 3;
 }
 
-void Game::OnLButtonClick(int x, int y) {
-    int cellWidth = 300 / 3;
-    int cellHeight = 300 / 3;
-
+void Game::OnLButtonClick(HWND hwnd, int x, int y) {
     int col = x / cellWidth;
     int row = y / cellHeight;
 
-    if (board[row][col] == ' ') {
-        board[row][col] = isXTurn ? 'X' : 'O';
+    if (board[row][col] == 0) {
+        board[row][col] = isXTurn ? 1 : 2;
         isXTurn = !isXTurn;
         InvalidateRect(hwnd, nullptr, TRUE);
         UpdateWindow(hwnd);
-        CheckWinner();
+        CheckWinner(hwnd);
     }
 }
 
 void Game::OnPaint(HDC hdc, RECT& rect) {
-    int cellWidth = rect.right / 3;
-    int cellHeight = rect.bottom / 3;
-
-    HBRUSH hBrush = CreateSolidBrush(RGB(255, 255, 255));
-    FillRect(hdc, &rect, hBrush);
-    DeleteObject(hBrush);
-
     for (int row = 0; row < 3; ++row) {
         for (int col = 0; col < 3; ++col) {
             RECT cellRect = { col * cellWidth, row * cellHeight, (col + 1) * cellWidth, (row + 1) * cellHeight };
-            DrawText(hdc, board[row][col] == ' ' ? L" " : (board[row][col] == 'X' ? L"X" : L"O"), -1, &cellRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+            if (board[row][col] != 0) {
+                DrawSymbol(hdc, cellRect, board[row][col] == 1 ? L'X' : L'O');
+            }
         }
     }
 
     HPEN hPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
-    SelectObject(hdc, hPen);
+    HPEN oldPen = (HPEN)SelectObject(hdc, hPen);
     for (int i = 1; i < 3; ++i) {
         MoveToEx(hdc, i * cellWidth, 0, nullptr);
         LineTo(hdc, i * cellWidth, rect.bottom);
         MoveToEx(hdc, 0, i * cellHeight, nullptr);
         LineTo(hdc, rect.right, i * cellHeight);
     }
+    SelectObject(hdc, oldPen);
     DeleteObject(hPen);
 }
 
-bool Game::CheckLine(char a, char b, char c) {
-    return (a == b && b == c && a != ' ');
+void Game::DrawSymbol(HDC hdc, RECT& rect, wchar_t symbol) {
+    int padding = (rect.right - rect.left) / 10; 
+    InflateRect(&rect, -padding, -padding);
+
+    int thickness = (rect.right - rect.left) / 15; 
+    HPEN hPen = CreatePen(PS_SOLID, thickness, RGB(0, 0, 0));
+    HPEN oldPen = (HPEN)SelectObject(hdc, hPen);
+
+    if (symbol == L'X') {
+        MoveToEx(hdc, rect.left, rect.top, nullptr);
+        LineTo(hdc, rect.right, rect.bottom);
+        MoveToEx(hdc, rect.right, rect.top, nullptr);
+        LineTo(hdc, rect.left, rect.bottom);
+    }
+    else if (symbol == L'O') {
+        Ellipse(hdc, rect.left, rect.top, rect.right, rect.bottom);
+    }
+
+    SelectObject(hdc, oldPen);
+    DeleteObject(hPen);
 }
 
-void Game::CheckWinner() {
-    std::wstring xWins = LoadStringResource(nullptr, IDS_XWINS);
-    std::wstring oWins = LoadStringResource(nullptr, IDS_OWINS);
-    std::wstring gameOver = LoadStringResource(nullptr, IDS_GAMEOVER);
-    std::wstring draw = LoadStringResource(nullptr, IDS_DRAW);
+void Game::CheckWinner(HWND hwnd) {
+    auto getMessageBoxString = [&](int winner) {
+        if (winner == 1) {
+            return LoadStringResource(nullptr, IDS_XWINS);
+        }
+        else if (winner == 2) {
+            return LoadStringResource(nullptr, IDS_OWINS);
+        }
+        else if (winner == 0) {
+            return LoadStringResource(nullptr, IDS_DRAW);
+        }
+        return std::wstring();
+    };
 
     for (int i = 0; i < 3; ++i) {
-        if (CheckLine(board[i][0], board[i][1], board[i][2])) {
-            MessageBox(hwnd, (board[i][0] == 'X' ? xWins.c_str() : oWins.c_str()), gameOver.c_str(), MB_OK);
-            ResetGame();
+        if (board[i][0] != 0 && board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
+            MessageBox(hwnd, getMessageBoxString(board[i][0]).c_str(), getMessageBoxString(-1).c_str(), MB_OK);
+            ResetGame(hwnd);
             InvalidateRect(hwnd, nullptr, TRUE);
             return;
         }
-        if (CheckLine(board[0][i], board[1][i], board[2][i])) {
-            MessageBox(hwnd, (board[0][i] == 'X' ? xWins.c_str() : oWins.c_str()), gameOver.c_str(), MB_OK);
-            ResetGame();
+        if (board[0][i] != 0 && board[0][i] == board[1][i] && board[1][i] == board[2][i]) {
+            MessageBox(hwnd, getMessageBoxString(board[0][i]).c_str(), getMessageBoxString(-1).c_str(), MB_OK);
+            ResetGame(hwnd);
             InvalidateRect(hwnd, nullptr, TRUE);
             return;
         }
     }
 
-    if (CheckLine(board[0][0], board[1][1], board[2][2])) {
-        MessageBox(hwnd, (board[0][0] == 'X' ? xWins.c_str() : oWins.c_str()), gameOver.c_str(), MB_OK);
-        ResetGame();
+    if (board[0][0] != 0 && board[0][0] == board[1][1] && board[1][1] == board[2][2]) {
+        MessageBox(hwnd, getMessageBoxString(board[0][0]).c_str(), getMessageBoxString(-1).c_str(), MB_OK);
+        ResetGame(hwnd);
         InvalidateRect(hwnd, nullptr, TRUE);
         return;
     }
-    if (CheckLine(board[0][2], board[1][1], board[2][0])) {
-        MessageBox(hwnd, (board[0][2] == 'X' ? xWins.c_str() : oWins.c_str()), gameOver.c_str(), MB_OK);
-        ResetGame();
+    if (board[0][2] != 0 && board[0][2] == board[1][1] && board[1][1] == board[2][0]) {
+        MessageBox(hwnd, getMessageBoxString(board[0][2]).c_str(), getMessageBoxString(-1).c_str(), MB_OK);
+        ResetGame(hwnd);
         InvalidateRect(hwnd, nullptr, TRUE);
         return;
     }
 
     bool drawGame = true;
-    for (int row = 0; row < 3; ++row) {
-        for (int col = 0; col < 3; ++col) {
-            if (board[row][col] == ' ') {
+    for (const auto& row : board) {
+        for (int cell : row) {
+            if (cell == 0) {
                 drawGame = false;
                 break;
             }
@@ -109,21 +127,22 @@ void Game::CheckWinner() {
     }
 
     if (drawGame) {
-        MessageBox(hwnd, draw.c_str(), gameOver.c_str(), MB_OK);
-        ResetGame();
+        MessageBox(hwnd, getMessageBoxString(0).c_str(), getMessageBoxString(-1).c_str(), MB_OK);
+        ResetGame(hwnd);
         InvalidateRect(hwnd, nullptr, TRUE);
     }
 }
 
-void Game::ResetGame() {
+void Game::ResetGame(HWND hwnd) {
     isXTurn = true;
     for (auto& row : board) {
-        for (char& cell : row) {
-            cell = ' ';
+        for (int& cell : row) {
+            cell = 0;
         }
     }
-}
 
-void Game::Resize(int width, int height) {
-    InvalidateRect(hwnd, nullptr, TRUE);
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    cellWidth = clientRect.right / 3;
+    cellHeight = clientRect.bottom / 3;
 }
