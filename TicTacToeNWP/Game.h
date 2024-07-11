@@ -9,7 +9,7 @@ class Game {
 public:
     Game();
     void Initialize();
-    bool OnLButtonClick(int x, int y);
+    bool OnLButtonClick(int x, int y, RECT& rect);
     void OnPaint(HDC hdc, RECT& rect);
     bool CheckWinner(std::wstring& message);
     void ResetGame();
@@ -19,4 +19,5 @@ private:
     bool isXTurn;
 
     void DrawSymbol(HDC hdc, RECT& rect, CellState state);
+    std::wstring LoadStringResource(HINSTANCE hInstance, int id);
 };

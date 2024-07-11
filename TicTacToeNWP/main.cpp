@@ -11,17 +11,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         return 0;
 
     case WM_LBUTTONDOWN: {
+        RECT rect;
+        GetClientRect(hwnd, &rect);
         int x = LOWORD(lParam);
         int y = HIWORD(lParam);
-        if (game.OnLButtonClick(x, y)) {
+        if (game.OnLButtonClick(x, y, rect)) {
             InvalidateRect(hwnd, nullptr, TRUE);
-            UpdateWindow(hwnd);
 
             std::wstring message;
             if (game.CheckWinner(message)) {
                 MessageBox(hwnd, message.c_str(), L"Game Over", MB_OK);
+                game.ResetGame();
                 InvalidateRect(hwnd, nullptr, TRUE);
-                UpdateWindow(hwnd);
             }
         }
         return 0;
@@ -37,11 +38,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         return 0;
     }
 
-    case WM_SIZE: {
+    case WM_SIZE:
         InvalidateRect(hwnd, nullptr, TRUE);
-        UpdateWindow(hwnd);
         return 0;
-    }
 
     case WM_DESTROY:
         PostQuitMessage(0);
@@ -50,6 +49,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
+
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
     const wchar_t CLASS_NAME[] = L"TicTacToeWindowClass";
 
@@ -57,8 +58,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     wc.lpfnWndProc = WindowProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); 
-    wc.hCursor = LoadCursor(nullptr, IDC_ARROW); 
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    wc.style = CS_HREDRAW | CS_VREDRAW;
 
     RegisterClass(&wc);
 

@@ -5,21 +5,13 @@ Game::Game() : isXTurn(true) {
     ResetGame();
 }
 
-std::wstring LoadStringResource(HINSTANCE hInstance, int id) {
-    wchar_t buffer[256];
-    int length = LoadString(hInstance, id, buffer, sizeof(buffer) / sizeof(buffer[0]));
-    return std::wstring(buffer, length);
-}
-
 void Game::Initialize() {
     ResetGame();
 }
 
-bool Game::OnLButtonClick(int x, int y) {
-    RECT clientRect;
-    GetClientRect(GetActiveWindow(), &clientRect);
-    int cellWidth = (clientRect.right - clientRect.left) / 3;
-    int cellHeight = (clientRect.bottom - clientRect.top) / 3;
+bool Game::OnLButtonClick(int x, int y, RECT& rect) {
+    int cellWidth = (rect.right - rect.left) / 3;
+    int cellHeight = (rect.bottom - rect.top) / 3;
 
     int col = x / cellWidth;
     int row = y / cellHeight;
@@ -96,24 +88,20 @@ bool Game::CheckWinner(std::wstring& message) {
     for (int i = 0; i < 3; ++i) {
         if (board[i][0] != EMPTY && board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
             message = getMessageBoxString(board[i][0]);
-            ResetGame();
             return true;
         }
         if (board[0][i] != EMPTY && board[0][i] == board[1][i] && board[1][i] == board[2][i]) {
             message = getMessageBoxString(board[0][i]);
-            ResetGame();
             return true;
         }
     }
 
     if (board[0][0] != EMPTY && board[0][0] == board[1][1] && board[1][1] == board[2][2]) {
         message = getMessageBoxString(board[0][0]);
-        ResetGame();
         return true;
     }
     if (board[0][2] != EMPTY && board[0][2] == board[1][1] && board[1][1] == board[2][0]) {
         message = getMessageBoxString(board[0][2]);
-        ResetGame();
         return true;
     }
 
@@ -129,7 +117,6 @@ bool Game::CheckWinner(std::wstring& message) {
 
     if (drawGame) {
         message = getMessageBoxString(EMPTY);
-        ResetGame();
         return true;
     }
     return false;
@@ -142,4 +129,10 @@ void Game::ResetGame() {
             cell = EMPTY;
         }
     }
+}
+
+std::wstring Game::LoadStringResource(HINSTANCE hInstance, int id) {
+    wchar_t buffer[256];
+    LoadString(hInstance, id, buffer, sizeof(buffer) / sizeof(buffer[0]));
+    return std::wstring(buffer);
 }
