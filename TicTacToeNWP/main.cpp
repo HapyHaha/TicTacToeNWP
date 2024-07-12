@@ -20,7 +20,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
             std::wstring message;
             if (game.CheckWinner(message)) {
-                MessageBox(hwnd, message.c_str(), L"Game Over", MB_OK);
+                std::wstring gameOverTitle = game.LoadStringResource(nullptr, IDS_GAMEOVER);
+                MessageBox(hwnd, message.c_str(), gameOverTitle.c_str(), MB_OK);
                 game.ResetGame();
                 InvalidateRect(hwnd, nullptr, TRUE);
             }
@@ -39,7 +40,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     }
 
     case WM_SIZE:
-        InvalidateRect(hwnd, nullptr, TRUE);
         return 0;
 
     case WM_DESTROY:
@@ -48,8 +48,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
-
-
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
     const wchar_t CLASS_NAME[] = L"TicTacToeWindowClass";
